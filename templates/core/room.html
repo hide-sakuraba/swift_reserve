@@ -1,8 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
+{% block title %}{{ room.name }} - 予約カレンダー{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <!-- パンくずリスト -->
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
@@ -11,56 +12,135 @@
     </nav>
 
     <div class="row">
-        <!-- 左側：会議室情報 -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm mb-4">
                 {% if room.image %}
                 <img src="{{ room.image.url }}" class="card-img-top" alt="{{ room.name }}">
+                {% else %}
+                <div class="bg-light text-center py-5">No Image</div>
                 {% endif %}
                 <div class="card-body">
                     <h4 class="fw-bold">{{ room.name }}</h4>
                     <p class="text-muted small">{{ room.location }} / 定員{{ room.capacity }}名</p>
                     <hr>
-                    <p class="small">{{ room.description }}</p>
+                    <p class="small text-secondary">{{ room.description }}</p>
                 </div>
             </div>
         </div>
 
-        <!-- 右側：カレンダー本体 -->
         <div class="col-md-9">
             <div class="card border-0 shadow-sm p-4">
-                <div id='calendar'></div>
+                <div id='calendar' style="min-height: 600px;"></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- FullCalendar 読み込み (CDN) -->
+<!-- 予約入力モーダル -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">新規予約</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">会議名</label>
+                    <input type="text" id="eventTitle" class="form-control" placeholder="例：週次ミーティング">
+                </div>
+                <div class="row text-center bg-light py-2 mx-0 rounded">
+                    <div class="col border-end">
+                        <p class="small mb-0 text-muted">開始</p>
+                        <span id="startDisplay" class="fw-bold"></span>
+                    </div>
+                    <div class="col">
+                        <p class="small mb-0 text-muted">終了</p>
+                        <span id="endDisplay" class="fw-bold"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" id="saveBooking" class="btn btn-primary px-4">予約を確定する</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendarのライブラリ（CDN）をここで確実に読み込む -->
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        console.log("FullCalendarの初期化開始");
+
         var calendarEl = document.getElementById('calendar');
+        var bookingModalElement = document.getElementById('bookingModal');
+        var bookingModal = new bootstrap.Modal(bookingModalElement);
+        var selectedInfo = null;
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek', // 週表示（予約システムに最適）
+            initialView: 'timeGridWeek',
             locale: 'ja',
-            slotMinTime: '08:00:00', // 表示開始時間
-            slotMaxTime: '21:00:00', // 表示終了時間
+            selectable: true,
+            allDaySlot: false,
+            slotMinTime: '08:00:00',
+            slotMaxTime: '21:00:00',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'timeGridWeek,timeGridDay'
             },
-            // ここでDjangoからJSONを取得
+            // views.pyのget_bookingsに合わせる
             events: '/api/bookings/{{ room.id }}/',
-            
-            // 空き時間をクリックした時の処理（スピーディな予約の布石）
-            dateClick: function(info) {
-                alert('選択した時間: ' + info.dateStr + '\nここから予約登録モーダルを開く処理を後で実装します！');
+
+            select: function(info) {
+                selectedInfo = info;
+                const options = { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+                document.getElementById('startDisplay').innerText = info.start.toLocaleString('ja-JP', options);
+                document.getElementById('endDisplay').innerText = info.end.toLocaleString('ja-JP', options);
+                document.getElementById('eventTitle').value = "";
+                bookingModal.show();
             },
         });
         calendar.render();
+
+        document.getElementById('saveBooking').addEventListener('click', function() {
+            var title = document.getElementById('eventTitle').value;
+            if (!title) { alert("会議名を入力してください"); return; }
+
+            // CreateBookingViewに送信
+            fetch('/api/bookings/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    room_id: "{{ room.id }}",
+                    title: title,
+                    start: selectedInfo.startStr,
+                    end: selectedInfo.endStr
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    calendar.refetchEvents();
+                    bookingModal.hide();
+                } else {
+                    alert('エラー: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('通信エラーが発生しました');
+            });
+        });
     });
 </script>
 {% endblock %}
