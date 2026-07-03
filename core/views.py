@@ -1,5 +1,4 @@
 from django.views.generic import ListView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from .models import Room, Booking
 import json
 from django.utils.dateparse import parse_datetime
@@ -35,9 +34,72 @@ def get_bookings(request, room_id):
     return JsonResponse(events, safe=False)
 
 # 予約作成用ビュー
-class CreateBookingView(LoginRequiredMixin, View):
+class CreateBookingView(View):
     def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
+        # 1. ログインチェック（API的に401を返す）
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'セッションが切れました。ログインし直してください。'
+            }, status=401)
+
+        try:
+            # 2. JSから送られたJSONデータを解析
+            data = json.loads(request.body)
+
+            # 3. データの取り出し
+            room_id = data.get('room_id')
+            title = data.get('title', '無題の予約')
+
+            start_dt = parse_datetime(data.get('start'))
+            end_dt = parse_datetime(data.get('end'))
+
+            # 4. バリデーション（簡易）
+            if not all([room_id, start_dt, end_dt]):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '予約時間が正しく送信されませんでした。'
+                }, status=400)
+
+            # 5. 保存実行
+            booking = Booking.objects.create(
+                room_id=room_id,
+                user=request.user,
+                title=title,
+                start_time=start_dt,
+                end_time=end_dt
+            )
+
+            return JsonResponse({
+                'status': 'success',
+                'booking_id': booking.id
+            })
+
+        except Exception as e:
+            # エラーログを表示
+            print(f"Booking Error: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': '保存中にエラーが発生しました。'
+            }, status=400)
+
+        try:
+            # データの保存
+            # 注意：モデルのフィールド名が 'start_at' か 'start_time' か、プロジェクトの定義に合わせてください
+            booking = Booking.objects.create(
+                room_id=data.get('room_id'),
+                user=request.user,
+                title=data.get('title', '無題の予約'),  # titleがない場合のデフォルト値
+                start_at=parse_datetime(data.get('start')),  # フィールド名がstart_atの場合
+                end_at=parse_datetime(data.get('end')),  # フィールド名がend_atの場合
+            )
+            return JsonResponse({'status': 'success', 'booking_id': booking.id})
+
+        except Exception as e:
+            # デバッグ用にエラー内容を出力
+            print(f"Booking Error: {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
         try:
             # データの保存
             booking = Booking.objects.create(
