@@ -38,7 +38,7 @@ def get_bookings(request, room_id):
 # 予約作成用ビュー
 class CreateBookingView(View):
     def post(self, request, *args, **kwargs):
-        # 1. ログインチェック（API的に401を返す）
+        # 1. ログインチェック
         if not request.user.is_authenticated:
             return JsonResponse({
                 'status': 'error',
@@ -46,24 +46,53 @@ class CreateBookingView(View):
             }, status=401)
 
         try:
-            # 2. JSから送られたJSONデータを解析
+            # 2. JSONデータの解析
             data = json.loads(request.body)
 
-            # 3. データの取り出し
             room_id = data.get('room_id')
             title = data.get('title', '無題の予約')
-
+            # JSからの文字列形式のISO日時をPythonのdatetimeオブジェクトに変換
             start_dt = parse_datetime(data.get('start'))
             end_dt = parse_datetime(data.get('end'))
 
-            # 4. バリデーション（簡易）
+            # 3. 基本的な入力バリデーション
             if not all([room_id, start_dt, end_dt]):
                 return JsonResponse({
                     'status': 'error',
                     'message': '予約時間が正しく送信されませんでした。'
                 }, status=400)
 
-            # 5. 保存実行
+            # 4. ビジネスロジック・バリデーション
+            # 現在時刻より前の予約は不可
+            if start_dt < timezone.now():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '過去の日時で予約することはできません。'
+                }, status=400)
+
+            # 終了時間は開始時間より後であること
+            if start_dt >= end_dt:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '終了時間は開始時間よりも後の時刻にしてください。'
+                }, status=400)
+
+            # 5. 重複チェック（重要！）
+            # 条件: 同じ部屋(room_id)で、時間が重なっている予約があるか
+            # 重複判定の公式: (既存の開始 < 入力の終了) AND (既存の終了 > 入力の開始)
+            overlapping_bookings = Booking.objects.filter(
+                room_id=room_id,
+                start_time__lt=end_dt,
+                end_time__gt=start_dt
+            ).exists()
+
+            if overlapping_bookings:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': '指定された時間帯は既に他の予約が入っています。'
+                }, status=400)
+
+            # 6. 保存実行
             booking = Booking.objects.create(
                 room_id=room_id,
                 user=request.user,
@@ -74,46 +103,17 @@ class CreateBookingView(View):
 
             return JsonResponse({
                 'status': 'success',
-                'booking_id': booking.id
+                'booking_id': booking.id,
+                'message': '予約を完了しました！'
             })
 
         except Exception as e:
-            # エラーログを表示
-            print(f"Booking Error: {e}")
+            # デバッグ用にコンソールにエラーを表示
+            print(f"Booking Error: {str(e)}")
             return JsonResponse({
                 'status': 'error',
-                'message': '保存中にエラーが発生しました。'
+                'message': f'システムエラーが発生しました: {str(e)}'
             }, status=400)
-
-        try:
-            # データの保存
-            # 注意：モデルのフィールド名が 'start_at' か 'start_time' か、プロジェクトの定義に合わせてください
-            booking = Booking.objects.create(
-                room_id=data.get('room_id'),
-                user=request.user,
-                title=data.get('title', '無題の予約'),  # titleがない場合のデフォルト値
-                start_at=parse_datetime(data.get('start')),  # フィールド名がstart_atの場合
-                end_at=parse_datetime(data.get('end')),  # フィールド名がend_atの場合
-            )
-            return JsonResponse({'status': 'success', 'booking_id': booking.id})
-
-        except Exception as e:
-            # デバッグ用にエラー内容を出力
-            print(f"Booking Error: {e}")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-        try:
-            # データの保存
-            booking = Booking.objects.create(
-                room_id=data['room_id'],
-                user=request.user,
-                title=data['title'],
-                start_time=parse_datetime(data['start']),
-                end_time=parse_datetime(data['end']),
-            )
-            return JsonResponse({'status': 'success', 'booking_id': booking.id})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 class BookingDeleteView(LoginRequiredMixin, UserPassesTestMixin,DeleteView):
     model = Booking
