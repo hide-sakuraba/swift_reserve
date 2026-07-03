@@ -6,7 +6,7 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:home' %}">ホーム</a></li>
             <li class="breadcrumb-item active">{{ room.name }}</li>
         </ol>
     </nav>
@@ -69,7 +69,7 @@
                 {% else %}
                 {# ログインしていない場合：ログイン画面への誘導ボタンを表示 #}
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">キャンセル</button>
-                <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary px-4">
+                <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-primary px-4">
                     ログインして予約する
                 </a>
                 {% endif %}

@@ -1,16 +1,39 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+<!-- templates/navbar.html -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'home' %}">
-            <i class="bi bi-speedometer2 me-2"></i>SwiftReserve
-        </a>
-        <div class="d-flex align-items-center">
-            <span class="text-light me-3 small d-none d-sm-inline">
-                <i class="bi bi-person-circle"></i> {{ user.username }} さん
-            </span>
-            <form action="{% url 'logout' %}" method="post" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-light">ログアウト</button>
-            </form>
+        <a class="navbar-brand" href="{% url 'core:home' %}">SwiftReserve</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                {% if user.is_authenticated %}
+                    <!-- ログイン中 -->
+                    <li class="nav-item">
+                        <span class="nav-link text-light me-3">ようこそ、{{ user.username }} さん</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:mypage' %}">マイページ</a> <!-- 後ほど作成 -->
+                    </li>
+                    <li class="nav-item">
+                        <!-- Django 5.0以降必須のPOSTによるログアウト -->
+                        <form action="{% url 'accounts:logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-light btn-sm ms-2">ログアウト</button>
+                        </form>
+                    </li>
+                {% else %}
+                    <!-- 未ログイン -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:login' %}">ログイン</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary btn-sm ms-2" href="{% url 'accounts:signup' %}">新規登録</a>
+                    </li>
+                {% endif %}
+            </ul>
         </div>
     </div>
 </nav>

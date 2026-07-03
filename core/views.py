@@ -1,9 +1,11 @@
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, DeleteView
+from django.urls import reverse_lazy
 from .models import Room, Booking
 import json
 from django.utils.dateparse import parse_datetime
 from django.views import View
 from django.http import JsonResponse
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 # Create your views here
 class HomeView(ListView):
@@ -112,3 +114,12 @@ class CreateBookingView(View):
             return JsonResponse({'status': 'success', 'booking_id': booking.id})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+class BookingDeleteView(LoginRequiredMixin, UserPassesTestMixin,DeleteView):
+    model = Booking
+    success_url = reverse_lazy('accounts:mypage') # 削除後はマイページへ
+
+    def test_func(self):
+        # ログインユーザーと予約者が一致するかチェック
+        booking = self.get_object()
+        return self.request.user == booking.user

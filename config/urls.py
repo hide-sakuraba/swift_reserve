@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
-    path('accounts/', include('django.contrib.auth.urls')), # 認証系
+    path('accounts/', include('accounts.urls')), # 認証系
 ]
 
 # 開発環境(DEBUG=True)のみ、メディアファイルを配信する設定
