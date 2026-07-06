@@ -16,11 +16,11 @@ class SignupView(CreateView):
         login(self.request, self.object)
         return valid
 
-class MypageView(LoginRequiredMixin, ListView):
+class MyPageView(LoginRequiredMixin, ListView):
     model = Booking
     template_name = 'accounts/mypage.html'
-    context_object_name = 'reservations'
+    context_object_name = 'booking_list'
 
     def get_queryset(self):
         # ログインしているユーザーの予約だけを、日付が新しい順に取得
-        return Booking.objects.filter(user=self.request.user).order_by('-start_time')
+        return Booking.objects.filter(user=self.request.user).order_by('start_time')

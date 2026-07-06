@@ -6,6 +6,8 @@ from django.utils.dateparse import parse_datetime
 from django.views import View
 from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.utils import timezone
+from django.contrib import messages
 
 # Create your views here
 class HomeView(ListView):
@@ -115,11 +117,59 @@ class CreateBookingView(View):
                 'message': f'システムエラーが発生しました: {str(e)}'
             }, status=400)
 
+
+class BookingEventsListView(View):
+    """
+    特定の部屋の予約一覧をJSONで返す（FullCalendar用）
+    """
+
+    def get(self, request, *args, **kwargs):
+        room_id = request.GET.get('room_id')
+
+        if not room_id:
+            return JsonResponse([], safe=False)
+
+        # 指定された会議室の予約を取得
+        bookings = Booking.objects.filter(room_id=room_id)
+
+        events = []
+        for b in bookings:
+            # FullCalendarが理解できる形式に変換
+            events.append({
+                'id': b.id,
+                'title': b.title,
+                'start': b.start_time.isoformat(),
+                'end': b.end_time.isoformat(),
+                # 自分の予約かどうかで色を変える（オプション）
+                'color': '#0d6efd' if b.user == request.user else '#6c757d',
+            })
+
+        return JsonResponse(events, safe=False)
+
 class BookingDeleteView(LoginRequiredMixin, UserPassesTestMixin,DeleteView):
     model = Booking
     success_url = reverse_lazy('accounts:mypage') # 削除後はマイページへ
+
+    def deltete(self, request, *args, **kwargs):
+        # 削除成功時にメッセージを表示
+        messages.success(self.request, "予約をキャンセルしました。")
+        return super().delete(request, *args, **kwargs)
 
     def test_func(self):
         # ログインユーザーと予約者が一致するかチェック
         booking = self.get_object()
         return self.request.user == booking.user
+
+class ApiDeleteBookingView(LoginRequiredMixin, UserPassesTestMixin, View):
+    def post(self, request, pk, *args, **kwargs):
+        try:
+            booking = Booking.objects.get(pk=pk)
+            booking.delete()
+            return JsonResponse({'status': 'success', 'message': '予約をキャンセルしました。'})
+        except Booking.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': '予約が見つかりませんでした。'}, status=404)
+
+    def test_func(self):
+        # 自分の予約のみ削除可能にする
+        booking = Booking.objects.get(pk=self.kwargs['pk'])
+        return booking.user == self.request.user

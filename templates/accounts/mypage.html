@@ -4,28 +4,31 @@
 <div class="container mt-4">
     <h2 class="mb-4">マイページ（予約一覧）</h2>
 
-    <div class="card shadow-sm">
+    <div class="card shadow-sm border-0">
         <div class="card-body">
             {% if booking_list %}
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>会議室</th>
+                            <th>会議室ID</th>
+                            <th>件名</th>
                             <th>日付</th>
-                            <th>開始時間</th>
+                            <th>時間</th>
                             <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for booking in booking_list %}
                         <tr>
-                            <!-- 予約モデルにroomフィールドがあると仮定しています -->
-                            <td>{{ booking.room }}</td>
-                            <td>{{ booking.date }}</td>
-                            <td>{{ booking.start_time|time:"H:i" }}</td>
+                            <td>{{ booking.room_id }}</td>
+                            <td>{{ booking.title }}</td>
+                            <td>{{ booking.start_time|date:"Y/m/d" }}</td>
                             <td>
-                                <!-- 削除ボタンをフォームにしてPOSTで送信 -->
+                                {{ booking.start_time|date:"H:i" }} 〜 {{ booking.end_time|date:"H:i" }}
+                            </td>
+                            <td>
+                                <!-- 通常の画面遷移による削除（マイページ用） -->
                                 <form action="{% url 'core:booking_delete' booking.pk %}" method="post" style="display:inline;">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-outline-danger btn-sm"
@@ -40,9 +43,9 @@
                 </table>
             </div>
             {% else %}
-            <div class="text-center py-4">
+            <div class="text-center py-5">
                 <p class="text-muted">現在、予約はありません。</p>
-                <a href="{% url 'core:home' %}" class="btn btn-primary">予約を作成する</a>
+                <a href="{% url 'core:home' %}" class="btn btn-primary">会議室一覧へ</a>
             </div>
             {% endif %}
         </div>

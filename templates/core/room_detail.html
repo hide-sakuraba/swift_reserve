@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ room.name }} - 予約カレンダー{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-calendar3 me-2"></i>{{ room.name }} 予約状況</h2>
+        <a href="{% url 'core:home' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 戻る
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 p-3">
+        <!-- FullCalendarの表示場所 -->
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- 予約入力用モーダル (Bootstrap Modal) -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookingModalLabel">新規予約</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bookingForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">件名（目的など）</label>
+                        <input type="text" class="form-control" id="title" placeholder="例：チーム会議" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">開始時間</label>
+                        <input type="text" class="form-control bg-light" id="start_display" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">終了時間</label>
+                        <input type="text" class="form-control bg-light" id="end_display" readonly>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" id="saveBooking">予約を確定する</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- room_id をJSに渡すための隠し項目 -->
+<input type="hidden" id="roomId" value="{{ room.pk }}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // このページ専用の初期化処理（main.jsと連携）
+    document.addEventListener('DOMContentLoaded', function() {
+        initCalendar();
+    });
+</script>
+{% endblock %}
