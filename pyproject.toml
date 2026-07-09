@@ -7,5 +7,6 @@ dependencies = [
     "pillow",
     "django-cloudinary-storage",
     "cloudinary",
-    "dj-database-url",  # 👈 ここにこの1行を追記する
+    "dj-database-url",
+    "psycopg[binary]",
 ]
