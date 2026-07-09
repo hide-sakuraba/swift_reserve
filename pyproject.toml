@@ -9,4 +9,5 @@ dependencies = [
     "cloudinary",
     "dj-database-url",
     "psycopg[binary]",
+    "gunicorn",
 ]
