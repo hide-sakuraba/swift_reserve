@@ -136,4 +136,4 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-DEFAULT_FILES_STOTRAGE = 'cloundinary_strage.MediaCloudinaryStorage'
+DEFAULT_FILES_STORAGE = 'cloundinary_strage.MediaCloudinaryStorage'
