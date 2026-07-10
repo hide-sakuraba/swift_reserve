@@ -12,20 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-dev-key-12345')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = not os.environ.get('DATABASE_URL')
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-else:
-    # 💡 ローカルでは絶対にHTTPSへのリダイレクトをオフにする
-    SECURE_SSL_REDIRECT = False
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
-
 
 # Application definition
 
