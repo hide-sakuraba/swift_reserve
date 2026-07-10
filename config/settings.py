@@ -200,3 +200,6 @@ else:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
+    
+# 💡 Django 5.1で廃止された設定を、古いライブラリの互換性のためにダミーとして定義します
+STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
