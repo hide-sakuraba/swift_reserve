@@ -162,11 +162,7 @@ LOGIN_REDIRECT_URL = 'core:home'
 LOGOUT_REDIRECT_URL = 'core:home'
 
 
-# ==============================================================================
-# 💡 Cloudinary & ストレージ設定（ここを一新します）
-# ==============================================================================
 
-# 1. URLから < > を完全に排除した正しい形にする
 CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', 'cloudinary://986957171714352:_ggbZkzj5qFns-Q4NXMw5Mv8lQA@nhi7x9he')
 
 if CLOUDINARY_URL:
