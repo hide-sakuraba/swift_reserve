@@ -163,7 +163,7 @@ LOGOUT_REDIRECT_URL = 'core:home'
 
 
 
-CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', 'cloudinary://986957171714352:_ggbZkzj5qFns-Q4NXMw5Mv8lQA@nhi7x9he')
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL')
 
 if CLOUDINARY_URL:
     try:
@@ -200,6 +200,6 @@ else:
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
-    
+
 # 💡 Django 5.1で廃止された設定を、古いライブラリの互換性のためにダミーとして定義します
 STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
