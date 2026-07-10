@@ -11,4 +11,5 @@ dependencies = [
     "psycopg[binary]",
     "gunicorn",
     "psycopg2-binary>=2.9.12",
+    "whitenoise==6.12.0",
 ]
