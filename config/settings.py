@@ -12,15 +12,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-local-dev-key-12345')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'True'
+DEBUG = not os.environ.get('DATABASE_URL')
 
 ALLOWED_HOSTS = ['*']
 
-# 無料版RenderはHTTPSが標準なので、セキュリティ設定を追加
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+else:
+    # 💡 ローカルでは絶対にHTTPSへのリダイレクトをオフにする
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
 
 # Application definition
@@ -33,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'cloudinary_storage',
     'django.contrib.staticfiles',
-    'cloudinary_storage',
     'cloudinary',
     'accounts.apps.AccountsConfig',
     'core.apps.CoreConfig',
@@ -96,11 +99,11 @@ if not os.environ.get('DATABASE_URL'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': BASE_DIR / 'db.postgresql',
+            'NAME': 'swift_reserve',
             'USER': 'postgres',
-            'PASSWORD': '',
+            'PASSWORD': 'postgres',
             'HOST': 'localhost',
-            'PORT': '',
+            'PORT': '5432',
         }
     }
 
@@ -148,8 +151,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # カスタムユーザーモデル
@@ -160,20 +161,46 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'core:home'
 LOGOUT_REDIRECT_URL = 'core:home'
 
-# Cloudinaryの設定
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
-}
 
-STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "cloudinary_storage.storage.StaticCloudinaryStorage",
-    },
-}
+# ==============================================================================
+# 💡 Cloudinary & ストレージ設定（ここを一新します）
+# ==============================================================================
 
-STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
+# 1. URLから < > を完全に排除した正しい形にする
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', 'cloudinary://986957171714352:_ggbZkzj5qFns-Q4NXMw5Mv8lQA@nhi7x9he')
+
+if CLOUDINARY_URL:
+    try:
+        temp = CLOUDINARY_URL.split('://')[1]
+        credentials, cloud_name = temp.split('@')
+        api_key, api_secret = credentials.split(':')
+
+        CLOUDINARY_STORAGE = {
+            'CLOUD_NAME': cloud_name,
+            'API_KEY': api_key,
+            'API_SECRET': api_secret,
+        }
+    except ValueError:
+        pass
+
+# 2. 環境（DEBUG）に合わせてストレージを切り替える（Django 4.2+ 対応の正しい書き方）
+if not DEBUG:
+    # 本番環境（Render）：画像も静的ファイルもCloudinaryへ
+    STORAGES = {
+        "default": {
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "cloudinary_storage.storage.StaticCloudinaryStorage",
+        },
+    }
+else:
+    # ローカル開発環境：パソコン内のローカルフォルダへ保存する
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
