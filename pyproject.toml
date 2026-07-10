@@ -10,4 +10,5 @@ dependencies = [
     "dj-database-url",
     "psycopg[binary]",
     "gunicorn",
+    "psycopg2-binary>=2.9.12",
 ]
